@@ -1,3 +1,5 @@
 node_modules/
 packageWithLicenses.txt
 formattedPackage.txt
+Licenses.xlsx
+.DS_Store
