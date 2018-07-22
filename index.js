@@ -37,27 +37,34 @@ fs.readFile('./packages.txt', 'utf8', function(err, data) {
         } else {
             const packagesWithLicenses = [];
             const packageList = data.split('\n');
-            packageList.forEach(function(package, index) {
+            const requestPromises = packageList.map(function(package, index) {
                 const url = `${npmWebsitePrefix}/${package.replace(/\\n/g,'')}`;
-                request(url, function(err, response, html) {
-                    if(err) {
-                        console.log('Error requesting site, ', url);
-                    } else {
-                        const $ = cheerio.load(html);
-                        const license = $('h3').filter(function() {
-                            return $(this).text().trim() === 'license';
-                        }).next().text();
-                        console.log('writing to excel');
-                        worksheet.cell(index + 1,1).string(package.replace(/\\n/g,''));
-                        worksheet.cell(index + 1,2).string(license);
-                        fs.appendFileSync('./packageWithLicenses.txt', `${package.replace(/\\n/g,'')} - ${license}\n`, 'utf8', function(err) {
-                            if (err) {
-                                console.log('couldnt write to file');
-                            }
-                        });
-                    }
+                return new Promise(function(resolve){
+                    request(url, function(err, response, html) {
+                        if(err) {
+                            console.log('Error requesting site, ', url);
+                        } else {
+                            const $ = cheerio.load(html);
+                            const license = $('h3').filter(function() {
+                                return $(this).text().trim() === 'license';
+                            }).next().text();
+                            console.log('writing to excel');
+                            worksheet.cell(index + 1,1).string(package.replace(/\\n/g,''));
+                            worksheet.cell(index + 1,2).string(license);
+                            fs.appendFileSync('./packageWithLicenses.txt', `${package.replace(/\\n/g,'')} - ${license}\n`, 'utf8', function(err) {
+                                if (err) {
+                                    console.log('couldnt write to file');
+                                }
+                            });
+                            resolve();
+                        }
+                    });
                 });
-                workbook.write("Excel.xlsx");
+            });
+            Promise.all(requestPromises)
+            .then(function() {
+                workbook.write('Licenses.xlsx');
+                console.log('done with promises');
             });
         }
     });
