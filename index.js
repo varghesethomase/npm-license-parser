@@ -1,15 +1,12 @@
 const fs = require('fs');
 const request = require('request');
 const cheerio = require('cheerio');
-const npmWebsitePrefix = 'https://www.npmjs.com/package';
+const excel = require('excel4node');
 
-// fs.statSync('./formattedPackage.txt', function(err, stat) {
-//     if (err) {
-//         console.log('file not present');
-//     } else {
-        
-//     }
-// });
+const npmWebsitePrefix = 'https://www.npmjs.com/package';
+const  workbook = new excel.Workbook();
+const worksheet = workbook.addWorksheet('Libraries');
+
 if (fs.existsSync('./formattedPackage.txt')) {
     fs.unlinkSync('./formattedPackage.txt');
 }
@@ -17,14 +14,6 @@ if (fs.existsSync('./formattedPackage.txt')) {
 if (fs.existsSync('./packageWithLicenses.txt')) {
     fs.unlinkSync('./packageWithLicenses.txt');
 }
-
-// fs.statSync('./packageWithLicenses.txt', function(err, stat) {
-//     if (err) {
-//         console.log('file not present');
-//     } else {
-        
-//     }
-// });
 
 // format packages.txt
 fs.readFile('./packages.txt', 'utf8', function(err, data) {
@@ -48,7 +37,7 @@ fs.readFile('./packages.txt', 'utf8', function(err, data) {
         } else {
             const packagesWithLicenses = [];
             const packageList = data.split('\n');
-            packageList.forEach(function(package) {
+            packageList.forEach(function(package, index) {
                 const url = `${npmWebsitePrefix}/${package.replace(/\\n/g,'')}`;
                 request(url, function(err, response, html) {
                     if(err) {
@@ -58,6 +47,9 @@ fs.readFile('./packages.txt', 'utf8', function(err, data) {
                         const license = $('h3').filter(function() {
                             return $(this).text().trim() === 'license';
                         }).next().text();
+                        console.log('writing to excel');
+                        worksheet.cell(index + 1,1).string(package.replace(/\\n/g,''));
+                        worksheet.cell(index + 1,2).string(license);
                         fs.appendFileSync('./packageWithLicenses.txt', `${package.replace(/\\n/g,'')} - ${license}\n`, 'utf8', function(err) {
                             if (err) {
                                 console.log('couldnt write to file');
@@ -65,11 +57,9 @@ fs.readFile('./packages.txt', 'utf8', function(err, data) {
                         });
                     }
                 });
+                workbook.write("Excel.xlsx");
             });
         }
     });
-});
-process.nextTick(function() {
-    
 });
 
